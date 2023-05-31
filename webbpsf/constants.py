@@ -400,3 +400,15 @@ INSTRUMENT_IPC_DEFAULT_KERNEL_PARAMETERS = {
 # See Gaspar et al. 2021 for illustrative figures.
 # This is a rough approximation of a detector-position-dependent phenomenon
 MIRI_CRUCIFORM_INNER_RADIUS_PIX = 12
+
+# Alignment information about instrument internal pupil masks (
+INSTRUMENT_PUPIL_MASK_DEFAULT_POSITIONS = {
+    'NIRCam_MASKSWB': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_MASKLWB': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_MASKRND_SW': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_MASKRND_LW': {'pupil_shift_x': -0.012, 'pupil_shift_y': -0.023, 'pupil_rotation': -0.60},  # from K. Lawson, fits to ERS progid 1386 data
+    'MIRI_MASKFQPM_F1065C': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'MIRI_MASKFQPM_F11140': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'MIRI_MASKFQPM_F1550C': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'MIRI_MASKLYOT': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+}
