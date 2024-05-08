@@ -1,24 +1,22 @@
-import sys, os
-import numpy as np
-import matplotlib.pyplot as plt
-import astropy.io.fits as fits
-
-
 import logging
-_log = logging.getLogger('test_webbpsf')
+import os
+
+import numpy as np
+
+_log = logging.getLogger("test_webbpsf")
 _log.addHandler(logging.NullHandler())
 
 
-from .. import webbpsf_core
 import poppy
-from .test_errorhandling import _exception_message_starts_with
 
+from .. import webbpsf_core
+from .test_errorhandling import _exception_message_starts_with
 
 
 # The following functions are used in each of the test_<SI> files to
 # test the individual SIs
 def generic_output_test(iname):
-    """ Basic test: Can we get PSFs of desired size and shape and sampling?
+    """Basic test: Can we get PSFs of desired size and shape and sampling?
 
     This is repeated for each SI (probably overkill but let's be thorough.)
     """
@@ -29,39 +27,40 @@ def generic_output_test(iname):
     fov_arcsec = 5.0
 
     # fov in pixels
-    PSF = inst.calc_psf(nlambda=1, fov_pixels = 100, oversample=1)
-    assert(PSF[0].data.shape[0] == 100)
+    PSF = inst.calc_psf(nlambda=1, fov_pixels=100, oversample=1)
+    assert PSF[0].data.shape[0] == 100
     # fov in arcsec
-    PSF = inst.calc_psf(nlambda=1, fov_arcsec = fov_arcsec, oversample=1)
+    PSF = inst.calc_psf(nlambda=1, fov_arcsec=fov_arcsec, oversample=1)
     fov_pix = int(np.round(fov_arcsec / pxscale))
-    assert(PSF[0].data.shape[0] == fov_pix)
+    assert PSF[0].data.shape[0] == fov_pix
 
     # even and odd array sizes, no oversampling
-    inst.options['parity'] = 'odd'
-    PSF = inst.calc_psf(nlambda=1, fov_arcsec = fov_arcsec, oversample=1)
-    assert( np.remainder(PSF[0].data.shape[0],2) == 1)
+    inst.options["parity"] = "odd"
+    PSF = inst.calc_psf(nlambda=1, fov_arcsec=fov_arcsec, oversample=1)
+    assert np.remainder(PSF[0].data.shape[0], 2) == 1
 
-    inst.options['parity'] = 'even'
-    PSF = inst.calc_psf(nlambda=1, fov_arcsec = fov_arcsec, oversample=1)
-    assert( np.remainder(PSF[0].data.shape[0],2) == 0)
+    inst.options["parity"] = "even"
+    PSF = inst.calc_psf(nlambda=1, fov_arcsec=fov_arcsec, oversample=1)
+    assert np.remainder(PSF[0].data.shape[0], 2) == 0
 
     # odd array, even oversampling = even
-    inst.options['parity'] = 'odd'
-    PSF = inst.calc_psf(nlambda=1, fov_arcsec = fov_arcsec, oversample=2)
-    assert( np.remainder(PSF[0].data.shape[0],2) == 0)
+    inst.options["parity"] = "odd"
+    PSF = inst.calc_psf(nlambda=1, fov_arcsec=fov_arcsec, oversample=2)
+    assert np.remainder(PSF[0].data.shape[0], 2) == 0
 
     # odd array, odd oversampling = odd
-    inst.options['parity'] = 'odd'
-    PSF = inst.calc_psf(nlambda=1, fov_arcsec = fov_arcsec, oversample=3)
-    assert( np.remainder(PSF[0].data.shape[0],2) == 1)
+    inst.options["parity"] = "odd"
+    PSF = inst.calc_psf(nlambda=1, fov_arcsec=fov_arcsec, oversample=3)
+    assert np.remainder(PSF[0].data.shape[0], 2) == 1
 
     import tempfile
+
     outputdir = tempfile.gettempdir()
-    PSF.writeto(os.path.join(outputdir, 'test_write.fits'), overwrite=True)
+    PSF.writeto(os.path.join(outputdir, "test_write.fits"), overwrite=True)
 
 
-def do_test_source_offset(iname, distance=0.5,  nsteps=1, theta=0.0, tolerance=0.05, monochromatic=None, display=False):
-    """ Test source offsets
+def do_test_source_offset(iname, distance=0.5, nsteps=1, theta=0.0, tolerance=0.05, monochromatic=None, display=False):
+    """Test source offsets
     Does the star PSF center end up in the desired location?
 
     The tolerance threshold for success is by default 1/20th of a pixel
@@ -72,13 +71,13 @@ def do_test_source_offset(iname, distance=0.5,  nsteps=1, theta=0.0, tolerance=0
     subpixel sampling in the simulations, as well as by the accuracy of the
     centroid measuring function itself.
     """
-    _log.info("Calculating shifted image PSFs for "+iname)
+    _log.info("Calculating shifted image PSFs for " + iname)
 
     si = webbpsf_core.instrument(iname)
-    si.pupilopd=None
+    si.pupilopd = None
 
-    if iname=='NIRSpec':
-        si.image_mask = None # remove default MSA since it overcomplicates this test.
+    if iname == "NIRSpec":
+        si.image_mask = None  # remove default MSA since it overcomplicates this test.
 
     oversample = 2
 
@@ -87,23 +86,22 @@ def do_test_source_offset(iname, distance=0.5,  nsteps=1, theta=0.0, tolerance=0
     psfs = []
 
     # unshifted PSF
-    #psfs.append(  nc.calc_psf(nlambda=1, oversample=oversample) )
-    #shift_req.append(0)
+    # psfs.append(  nc.calc_psf(nlambda=1, oversample=oversample) )
+    # shift_req.append(0)
 
-    steps = np.linspace(0, distance, nsteps+1)
+    steps = np.linspace(0, distance, nsteps + 1)
     for i, value in enumerate(steps):
-        si.options['source_offset_r'] =  steps[i]
-        si.options['source_offset_theta'] = theta
-        #nc.options['source_offset_r'] = i*nc.pixelscale*5
-        shift_req.append(si.options['source_offset_r'])
-        psfs.append(  si.calc_psf(nlambda=1, monochromatic=monochromatic, oversample=oversample) )
-
+        si.options["source_offset_r"] = steps[i]
+        si.options["source_offset_theta"] = theta
+        # nc.options['source_offset_r'] = i*nc.pixelscale*5
+        shift_req.append(si.options["source_offset_r"])
+        psfs.append(si.calc_psf(nlambda=1, monochromatic=monochromatic, oversample=oversample))
 
     # Control case: an unshifted image
     cent0 = np.asarray(poppy.measure_centroid(psfs[0]))
-    center_pix = (psfs[0][0].data.shape[0]-1)/2.0
-    assert( abs(cent0[0] == center_pix) < 1e-3 )
-    assert( abs(cent0[1] == center_pix) < 1e-3 )
+    center_pix = (psfs[0][0].data.shape[0] - 1) / 2.0
+    assert abs(cent0[0] == center_pix) < 1e-3
+    assert abs(cent0[1] == center_pix) < 1e-3
     _log.info("Center of unshifted image: ({0:.3f}, {1:.3f}) pixels measured".format(*cent0))
     _log.info(" vs center of the array is ({0}, {0})".format(center_pix))
 
@@ -111,28 +109,27 @@ def do_test_source_offset(iname, distance=0.5,  nsteps=1, theta=0.0, tolerance=0
         poppy.display_PSF(psfs[0])
 
     # Compare to shifted case(s)
-    for i in range(1, nsteps+1):
-
+    for i in range(1, nsteps + 1):
         if display:
             poppy.display_PSF(psfs[i])
 
         cent = poppy.measure_centroid(psfs[i])
-        rx = shift_req[i] * (-np.sin(theta*np.pi/180))
-        ry = shift_req[i] * (np.cos(theta*np.pi/180))
+        rx = shift_req[i] * (-np.sin(theta * np.pi / 180))
+        ry = shift_req[i] * (np.cos(theta * np.pi / 180))
         _log.info("   Shift_requested:\t(%10.3f, %10.3f) arcsec" % (rx, ry))
-        shift = (cent-cent0) * (si.pixelscale/oversample)
+        shift = (cent - cent0) * (si.pixelscale / oversample)
         _log.info("   Shift_achieved: \t(%10.3f, %10.3f) arcsec" % (shift[1], shift[0]))
 
-        deltax =  abs(rx -  shift[1])
-        deltay =  abs(ry -  shift[0])
-        _log.info("   X offset:\t{0:.3f}\t\tTolerance:\t{1:.3f}".format(deltax, (si.pixelscale*tolerance)))
-        assert( deltax  <  (si.pixelscale*tolerance) )
-        _log.info("   Y offset:\t{0:.3f}\t\tTolerance:\t{1:.3f}".format(deltay, (si.pixelscale*tolerance)))
-        assert( deltay  <  (si.pixelscale*tolerance) )
+        deltax = abs(rx - shift[1])
+        deltay = abs(ry - shift[0])
+        _log.info("   X offset:\t{0:.3f}\t\tTolerance:\t{1:.3f}".format(deltax, (si.pixelscale * tolerance)))
+        assert deltax < (si.pixelscale * tolerance)
+        _log.info("   Y offset:\t{0:.3f}\t\tTolerance:\t{1:.3f}".format(deltay, (si.pixelscale * tolerance)))
+        assert deltay < (si.pixelscale * tolerance)
 
 
+# ------------------ generic infrastructure tests ----------------
 
-#------------------ generic infrastructure tests ----------------
 
 def test_opd_selected_by_default():
     """
@@ -140,48 +137,42 @@ def test_opd_selected_by_default():
 
     Ensure an OPD map is set by default when instantiating an instrument
     """
-    instruments = [
-        webbpsf_core.NIRCam,
-        webbpsf_core.MIRI,
-        webbpsf_core.NIRSpec,
-        webbpsf_core.NIRISS,
-        webbpsf_core.FGS
-    ]
+    instruments = [webbpsf_core.NIRCam, webbpsf_core.MIRI, webbpsf_core.NIRSpec, webbpsf_core.NIRISS, webbpsf_core.FGS]
     for InstrumentClass in instruments:
         ins = InstrumentClass()
         assert ins.pupilopd is not None, "No pupilopd set for {}".format(InstrumentClass)
 
 
 def test_calc_psf_rectangular_FOV():
-    """ Test that we can create rectangular FOVs """
-    nc = webbpsf_core.instrument('NIRCam')
+    """Test that we can create rectangular FOVs"""
+    nc = webbpsf_core.instrument("NIRCam")
     nc.pupilopd = None
-    nc.filter = 'F212N'
+    nc.filter = "F212N"
 
     side = round(2 / nc.pixelscale) * nc.pixelscale
     # pick something that can be done in integer pixels given NIRCam's sampling
 
     psf = nc.calc_psf(fov_arcsec=(side, 2 * side))
-    assert psf[0].data.shape[0]*2 == psf[0].data.shape[1]
+    assert psf[0].data.shape[0] * 2 == psf[0].data.shape[1]
 
     psf2 = nc.calc_psf(fov_pixels=(100, 200), oversample=1)
 
-    assert psf2[0].data.shape==(100,200)
+    assert psf2[0].data.shape == (100, 200)
 
 
 def test_cast_to_str():
     nc = webbpsf_core.NIRCam()
 
-    assert str(nc)=='<JWST: NIRCam>'
+    assert str(nc) == "<JWST: NIRCam>"
 
 
 def test_return_intermediates():
-    import poppy
     import astropy.io.fits
+    import poppy
 
     nc = webbpsf_core.NIRCam()
-    nc.image_mask='maskswb'
-    nc.pupil_mask='wedgelyot'
+    nc.image_mask = "maskswb"
+    nc.pupil_mask = "wedgelyot"
 
     osys = nc.get_optical_system()
 
@@ -192,9 +183,9 @@ def test_return_intermediates():
 
 
 def do_test_set_position_from_siaf(iname, more_apertures=[]):
-    """ Test that we can use the mapping from image mask names to
+    """Test that we can use the mapping from image mask names to
     aperture names to set detector positions automatically when
-    image masks are selected. """
+    image masks are selected."""
     inst = webbpsf_core.instrument(iname)
     for im in inst.image_mask_list:
         inst.image_mask = im
@@ -207,7 +198,7 @@ def test_calc_psf_format_output():
     PSF returns the correct number of extensions
     """
     nir = webbpsf_core.NIRCam()
-    nir.options['output_mode'] = 'Detector sampled Image'
+    nir.options["output_mode"] = "Detector sampled Image"
 
     psf = nir.calc_psf(add_distortion=False)
     assert len(psf) == 1
@@ -215,41 +206,41 @@ def test_calc_psf_format_output():
     psf_dist = nir.calc_psf(add_distortion=True)
     assert len(psf_dist) == 2
 
-#------------------    Utility Function Tests    ----------------------------
+
+# ------------------    Utility Function Tests    ----------------------------
 
 
 def test_instrument():
-    nc = webbpsf_core.instrument('NIRCam')
-
+    nc = webbpsf_core.instrument("NIRCam")
 
     try:
         import pytest
     except:
-        _log.warning('Skipping last step in test_instrument because pytest is not installed.')
-        return # We can't do this next test if we don't have the pytest.raises function.
+        _log.warning("Skipping last step in test_instrument because pytest is not installed.")
+        return  # We can't do this next test if we don't have the pytest.raises function.
 
     with pytest.raises(ValueError) as excinfo:
-        tmp = webbpsf_core.instrument('ACS')
-    assert _exception_message_starts_with(excinfo,'Incorrect instrument name')
+        tmp = webbpsf_core.instrument("ACS")
+    assert _exception_message_starts_with(excinfo, "Incorrect instrument name")
 
 
 def test_calc_or_load_PSF(outputdir=None):
     if outputdir is None:
         import tempfile
-        outputdir = tempfile.gettempdir()
 
+        outputdir = tempfile.gettempdir()
 
     nc = webbpsf_core.NIRCam()
 
-
-    filename =  os.path.join(outputdir, "test_calc_or_load_output.fits")
-    if os.path.exists(filename): os.unlink(filename)
+    filename = os.path.join(outputdir, "test_calc_or_load_output.fits")
+    if os.path.exists(filename):
+        os.unlink(filename)
 
     f0 = webbpsf_core.calc_or_load_PSF(filename, nc, monochromatic=2e-6)
     f0.close()
     assert os.path.exists(filename)
 
-    #this one should not re-calc since the file already exists:
+    # this one should not re-calc since the file already exists:
     # TODO - add some checking here of file modification date/times
     f1 = webbpsf_core.calc_or_load_PSF(filename, nc, monochromatic=2e-6)
     assert os.path.exists(filename)
@@ -260,4 +251,5 @@ def test_calc_or_load_PSF(outputdir=None):
     assert os.path.exists(filename)
     f2.close()
 
-#--------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------

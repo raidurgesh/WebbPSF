@@ -1,24 +1,27 @@
-from collections import OrderedDict
-import os, sys
-import warnings
-import astropy.io.fits as fits
-from astropy.nddata import NDData
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy
-import astropy.units as u
 import logging
+import os
+import sys
+import warnings
+from collections import OrderedDict
 
-_log = logging.getLogger('webbpsf')
+import astropy.io.fits as fits
+import astropy.units as u
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy
+from astropy.nddata import NDData
+
+_log = logging.getLogger("webbpsf")
 
 from . import conf
 
-_DISABLE_FILE_LOGGING_VALUE = 'none'
+_DISABLE_FILE_LOGGING_VALUE = "none"
 
 _Strehl_perfect_cache = {}  # dict for caching perfect images used in Strehl calcs.
 
 
 ### Helper routines for logging: ###
+
 
 class FilterLevelRange(object):
     def __init__(self, min_level, max_level):
@@ -44,17 +47,17 @@ def restart_logging(verbose=True):
     """
 
     level = str(conf.logging_level).upper()
-    lognames = ['webbpsf', 'poppy']
+    lognames = ["webbpsf", "poppy"]
 
     root_logger = logging.getLogger()
     root_logger.handlers = []
 
-    if level in ['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL']:
+    if level in ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]:
         level_id = getattr(logging, level)  # obtain one of the DEBUG, INFO, WARN,
         # or ERROR constants
         if verbose:
             print("WebbPSF log messages of level {0} and above will be shown.".format(level))
-    elif level == 'NONE':
+    elif level == "NONE":
         root_logger.handlers = []  # n.b. this will clear any handlers other libs/users configured
         return
     else:
@@ -66,16 +69,10 @@ def restart_logging(verbose=True):
 
     # set up screen logging
     stdout_handler = logging.StreamHandler(stream=sys.stdout)
-    stdout_handler.addFilter(FilterLevelRange(
-        min_level=logging.DEBUG,
-        max_level=logging.INFO
-    ))
+    stdout_handler.addFilter(FilterLevelRange(min_level=logging.DEBUG, max_level=logging.INFO))
 
     stderr_handler = logging.StreamHandler(stream=sys.stderr)
-    stderr_handler.addFilter(FilterLevelRange(
-        min_level=logging.WARNING,
-        max_level=logging.CRITICAL
-    ))
+    stderr_handler.addFilter(FilterLevelRange(min_level=logging.WARNING, max_level=logging.CRITICAL))
     formatter = logging.Formatter(conf.logging_format_screen)
     stderr_handler.setFormatter(formatter)
     stdout_handler.setFormatter(formatter)
@@ -100,7 +97,7 @@ def restart_logging(verbose=True):
             print("WebbPSF log outputs will also be saved to file {}".format(filename))
 
 
-def setup_logging(level='INFO', filename=None):
+def setup_logging(level="INFO", filename=None):
     """Allows selection of logging detail and output locations
     (screen and/or file)
 
@@ -197,9 +194,10 @@ def get_webbpsf_data_path(data_version_min=None, return_version=False):
     package.
     """
     import os
+
     path_from_config = conf.WEBBPSF_PATH  # read from astropy configuration
-    if path_from_config == 'from_environment_variable':
-        path = os.getenv('WEBBPSF_PATH')
+    if path_from_config == "from_environment_variable":
+        path = os.getenv("WEBBPSF_PATH")
         if path is None:
             raise EnvironmentError(f"Environment variable $WEBBPSF_PATH is not set!\n{MISSING_WEBBPSF_DATA_MESSAGE}")
     else:
@@ -211,12 +209,12 @@ def get_webbpsf_data_path(data_version_min=None, return_version=False):
 
     if data_version_min is not None:
         # Check if the data in WEBBPSF_PATH meet the minimum data version
-        version_file_path = os.path.join(path, 'version.txt')
+        version_file_path = os.path.join(path, "version.txt")
         try:
             with open(version_file_path) as f:
                 version_contents = f.read().strip()
                 # keep only first 3 elements for comparison (allows "0.3.4.dev" or similar)
-                parts = version_contents.split('.')[:3]
+                parts = version_contents.split(".")[:3]
             version_tuple = tuple(map(int, parts))
         except (IOError, ValueError):
             raise EnvironmentError(
@@ -227,13 +225,13 @@ def get_webbpsf_data_path(data_version_min=None, return_version=False):
             )
 
         if not version_tuple >= data_version_min:
-            min_ver = '{}.{}.{}'.format(*data_version_min)
+            min_ver = "{}.{}.{}".format(*data_version_min)
             raise EnvironmentError(
                 f"WebbPSF data package has version {version_contents}, but {min_ver} is needed. "
                 "See https://webbpsf.readthedocs.io/en/stable/installation.html#data-install "
                 "for a link to the latest version."
                 f"\n{MISSING_WEBBPSF_DATA_MESSAGE}"
-                )
+            )
 
         if return_version:
             return path, version_contents
@@ -275,8 +273,9 @@ Numpy compilation and linking:
 
 """
 
+
 def get_pupil_mask(npix=1024, label_segments=False):
-    """ Utility function to easily retrieve the pupil mask file for a given size.
+    """Utility function to easily retrieve the pupil mask file for a given size.
 
     Parameters
     ----------
@@ -286,23 +285,21 @@ def get_pupil_mask(npix=1024, label_segments=False):
        Return map with segment IDs 1 through 18, rather than just 1 or 0 for in pupil or not.
 
     """
-    basename = f'JWpupil_segments_RevW_npix{npix}.fits.gz' if label_segments else f'jwst_pupil_RevW_npix{npix}.fits.gz'
+    basename = f"JWpupil_segments_RevW_npix{npix}.fits.gz" if label_segments else f"jwst_pupil_RevW_npix{npix}.fits.gz"
 
     fullname = os.path.join(get_webbpsf_data_path(), basename)
 
     if not os.path.exists(fullname):
-        fullname = fullname.replace(".fits.gz", '.fits')
+        fullname = fullname.replace(".fits.gz", ".fits")
     try:
         data = fits.getdata(fullname)
     except FileNotFoundError as e:
-        raise FileNotFoundError(f"No pupil file found for npix={npix}. Check your WebbPSF data directory, "+
-                                "and make sure you're using a value which is a power of 2, at least 256") from e
+        raise FileNotFoundError(f"No pupil file found for npix={npix}. Check your WebbPSF data directory, " + "and make sure you're using a value which is a power of 2, at least 256") from e
     return data
 
 
-
 def system_diagnostic():
-    """ return various helpful/informative information about the
+    """return various helpful/informative information about the
     current system. For instance versions of python & available packages.
 
     Mostly undocumented function...
@@ -311,30 +308,33 @@ def system_diagnostic():
     # There is probably a more clever way to do the following via introspection?
 
     import platform
-    import os
-    import poppy
+
     import numpy
+    import poppy
     import scipy
 
     try:
         from .version import version
     except ImportError:
-        version = ''
+        version = ""
 
     try:
         import ttk
+
         ttk_version = ttk.__version__
     except ImportError:
-        ttk_version = 'not found'
+        ttk_version = "not found"
 
     try:
         import wx
+
         wx_version = wx.__version__
     except ImportError:
-        wx_version = 'not found'
+        wx_version = "not found"
 
     try:
         import pyfftw
+
         try:
             pyfftw_version = pyfftw.__version__
         except AttributeError:
@@ -342,51 +342,55 @@ def system_diagnostic():
             pyfftw_version = pyfftw.version
 
     except ImportError:
-        pyfftw_version = 'not found'
+        pyfftw_version = "not found"
     try:
         import stsynphot
+
         stsynphot_version = stsynphot.__version__
     except ImportError:
-        stsynphot_version = 'not found'
+        stsynphot_version = "not found"
 
     try:
         import pysynphot
+
         pysynphot_version = pysynphot.__version__
     except ImportError:
-        pysynphot_version = 'not found'
+        pysynphot_version = "not found"
 
     try:
         import astropy
+
         astropy_version = astropy.__version__
     except ImportError:
-        astropy_version = 'not found'
+        astropy_version = "not found"
 
     try:
         import numexpr
+
         numexpr_version = numexpr.__version__
     except ImportError:
-        numexpr_version = 'not found'
+        numexpr_version = "not found"
 
     try:
         import accelerate
+
         accelerate_version = accelerate.__version__
     except ImportError:
-        accelerate_version = 'not found'
+        accelerate_version = "not found"
 
     try:
         import psutil
+
         cpu_info = """
   Hardware cores: {hw}
   Logical core: {logical}
   Frequency: {freq} GHz
   Currently {percent}% utilized.
-""".format(hw=psutil.cpu_count(logical=False),
-           logical=psutil.cpu_count(logical=True),
-           freq=psutil.cpu_freq()[0] / 1000,
-           percent=psutil.cpu_percent())
+""".format(hw=psutil.cpu_count(logical=False), logical=psutil.cpu_count(logical=True), freq=psutil.cpu_freq()[0] / 1000, percent=psutil.cpu_percent())
     except:
         try:
             import multiprocessing
+
             cpu_info = "  Cores: {}".format(multiprocessing.cpu_count())
         except:
             cpu_info = "No CPU info available"
@@ -396,7 +400,8 @@ def system_diagnostic():
 
     numpyconfig = ""
     for name, info_dict in numpy.__config__.__dict__.items():
-        if name[0] == "_" or type(info_dict) is not type({}): continue
+        if name[0] == "_" or type(info_dict) is not type({}):
+            continue
         numpyconfig += name + ":\n"
         if not info_dict:
             numpyconfig += "  NOT AVAILABLE\n"
@@ -424,21 +429,21 @@ def system_diagnostic():
         scipy=scipy.__version__,
         accelerate=accelerate_version,
         numpyconfig=numpyconfig,
-        cpu=cpu_info
+        cpu=cpu_info,
     )
     return result
 
 
 ### Helper routines for image manipulation: ###
 
+
 def rms(opd, mask):
-    """ Compute RMS of an OPD over some given masked area
-    """
-    return np.sqrt((opd[(mask != 0) & np.isfinite(opd)]**2).mean())
+    """Compute RMS of an OPD over some given masked area"""
+    return np.sqrt((opd[(mask != 0) & np.isfinite(opd)] ** 2).mean())
 
 
 def measure_strehl(HDUlist_or_filename=None, ext=0, slice=0, center=None, display=True, verbose=True, cache_perfect=False):
-    """ Estimate the Strehl ratio for a PSF.
+    """Estimate the Strehl ratio for a PSF.
 
     This requires computing a simulated PSF with the same
     properties as the one under analysis.
@@ -480,8 +485,9 @@ def measure_strehl(HDUlist_or_filename=None, ext=0, slice=0, center=None, displa
 
     """
 
-    from .webbpsf_core import instrument
     from poppy import display_psf
+
+    from .webbpsf_core import instrument
 
     if isinstance(HDUlist_or_filename, str):
         HDUlist = fits.open(HDUlist_or_filename)
@@ -503,17 +509,18 @@ def measure_strehl(HDUlist_or_filename=None, ext=0, slice=0, center=None, displa
 
     # Compute a comparison image
     _log.info("Now computing image with zero OPD for comparison...")
-    inst = instrument(header['INSTRUME'])
-    inst.filter = header['FILTER']
+    inst = instrument(header["INSTRUME"])
+    inst.filter = header["FILTER"]
     inst.pupilopd = None  # perfect image
     inst.include_si_wfe = False  # perfect image
-    inst.pixelscale = header['PIXELSCL'] * header['OVERSAMP']  # same pixel scale pre-oversampling
-    cache_key = (header['INSTRUME'], header['FILTER'], header['PIXELSCL'], header['OVERSAMP'], header['FOV'], header['NWAVES'])
+    inst.pixelscale = header["PIXELSCL"] * header["OVERSAMP"]  # same pixel scale pre-oversampling
+    cache_key = (header["INSTRUME"], header["FILTER"], header["PIXELSCL"], header["OVERSAMP"], header["FOV"], header["NWAVES"])
     try:
         comparison_psf = _Strehl_perfect_cache[cache_key]
     except KeyError:
-        comparison_psf = inst.calc_psf(fov_arcsec=header['FOV'], oversample=header['OVERSAMP'], nlambda=header['NWAVES'])
-        if cache_perfect: _Strehl_perfect_cache[cache_key] = comparison_psf
+        comparison_psf = inst.calc_psf(fov_arcsec=header["FOV"], oversample=header["OVERSAMP"], nlambda=header["NWAVES"])
+        if cache_perfect:
+            _Strehl_perfect_cache[cache_key] = comparison_psf
 
     comparison_image = comparison_psf[0].data
 
@@ -525,9 +532,9 @@ def measure_strehl(HDUlist_or_filename=None, ext=0, slice=0, center=None, displa
         # average across a group of 4
         bot = [int(np.floor(f)) for f in center]
         top = [int(np.ceil(f) + 1) for f in center]
-        meas_peak = image[bot[1]:top[1], bot[0]:top[0]].mean()
-        ref_peak = comparison_image[bot[1]:top[1], bot[0]:top[0]].mean()
-    strehl = (meas_peak / ref_peak)
+        meas_peak = image[bot[1] : top[1], bot[0] : top[0]].mean()
+        ref_peak = comparison_image[bot[1] : top[1], bot[0] : top[0]].mean()
+    strehl = meas_peak / ref_peak
 
     if display:
         plt.clf()
@@ -544,8 +551,9 @@ def measure_strehl(HDUlist_or_filename=None, ext=0, slice=0, center=None, displa
 
     return strehl
 
+
 def rescale_interpolate_opd(array, newdim):
-    """ Interpolates & rescales an input 2D array to any given size.
+    """Interpolates & rescales an input 2D array to any given size.
     Uses scipy.interpolate.RectBivariateSpline
 
     Parameters
@@ -574,7 +582,7 @@ def rescale_interpolate_opd(array, newdim):
 
     x2 = np.arange(-xmax, xmax, dx)
     y2 = np.arange(-ymax, ymax, dy)
-    #X2, Y2 = np.meshgrid(x2, y2)
+    # X2, Y2 = np.meshgrid(x2, y2)
     newopd = interp_spline(y2, x2)
     newopd = np.reshape(newopd, (newdim, newdim))
 
@@ -582,7 +590,7 @@ def rescale_interpolate_opd(array, newdim):
 
 
 def border_extrapolate_pad(image, mask):
-    """ Extrapolate phases on an irregular aperture. Sort of an inelegant hack, but useful
+    """Extrapolate phases on an irregular aperture. Sort of an inelegant hack, but useful
     in some contexts, in particular to fill in phase values in segment gaps prior to rescaling
     or interpolation.
 
@@ -606,7 +614,8 @@ def border_extrapolate_pad(image, mask):
     i = 0
     for dx in [-1, 0, 1]:
         for dy in [-1, 0, 1]:
-            if dx == 0 and dy == 0: continue
+            if dx == 0 and dy == 0:
+                continue
             shifted[i] = np.roll(np.roll(masked_im, dy, axis=0), dx, axis=1)
             i += 1
 
@@ -628,63 +637,57 @@ def border_extrapolate_pad(image, mask):
 # use via poppy's display_annotate feature by assigning these to
 # the display_annotate attribute of an OpticalElement class
 
-def annotate_ote_pupil_coords(self, ax, orientation='entrance_pupil'):
-    """ Draw OTE V frame axes on first optical plane """
-    color = 'yellow'
+
+def annotate_ote_pupil_coords(self, ax, orientation="entrance_pupil"):
+    """Draw OTE V frame axes on first optical plane"""
+    color = "yellow"
 
     xloc = 3
-    if orientation=='entrance_pupil':
+    if orientation == "entrance_pupil":
         yloc = 3
         v3sign = +1
-        v3verticalalignment = 'bottom'
-    elif orientation=='exit_pupil':
+        v3verticalalignment = "bottom"
+    elif orientation == "exit_pupil":
         yloc = 2.5
         v3sign = -1
-        v3verticalalignment = 'top'
+        v3verticalalignment = "top"
     else:
         raise ValueError(f"Unknown orientation {orientation}. Must be either 'entrance_pupil' or 'exit_pupil'. ")
 
-    ax.arrow(-xloc, -yloc, .2, 0, color=color, width=0.005)
-    ax.arrow(-xloc, -yloc, 0, .2*v3sign, color=color, width=0.005)
-    ax.text(-xloc, -yloc + 0.4*v3sign, '+V3', color=color, size='small',
-            horizontalalignment='center', verticalalignment=v3verticalalignment)
-    ax.text(-xloc + 0.4, -yloc, '+V2', color=color, size='small',
-            horizontalalignment='left', verticalalignment='center')
+    ax.arrow(-xloc, -yloc, 0.2, 0, color=color, width=0.005)
+    ax.arrow(-xloc, -yloc, 0, 0.2 * v3sign, color=color, width=0.005)
+    ax.text(-xloc, -yloc + 0.4 * v3sign, "+V3", color=color, size="small", horizontalalignment="center", verticalalignment=v3verticalalignment)
+    ax.text(-xloc + 0.4, -yloc, "+V2", color=color, size="small", horizontalalignment="left", verticalalignment="center")
 
 
-def annotate_sky_pupil_coords(self, ax, show_NE=False, north_angle=45.):
-    """ Draw OTE V frame axes projected onto the sky
+def annotate_sky_pupil_coords(self, ax, show_NE=False, north_angle=45.0):
+    """Draw OTE V frame axes projected onto the sky
     Optionally also draw a compass for north and east at some given
     position angle
     """
-    color = 'yellow'
+    color = "yellow"
     loc = 2.9
-    ax.arrow(-loc + 0.5, -loc, -.2, 0, color=color, width=0.005)
-    ax.arrow(-loc + 0.5, -loc, 0, .2, color=color, width=0.005)
-    ax.text(-loc + 0.5, -loc + 0.3, '+V3 on sky', color=color, size='small',
-            horizontalalignment='center', verticalalignment='bottom')
-    ax.text(-loc + 0.5 + 0.3, -loc, '+V2 on sky', color=color, size='small',
-            horizontalalignment='left', verticalalignment='center')
+    ax.arrow(-loc + 0.5, -loc, -0.2, 0, color=color, width=0.005)
+    ax.arrow(-loc + 0.5, -loc, 0, 0.2, color=color, width=0.005)
+    ax.text(-loc + 0.5, -loc + 0.3, "+V3 on sky", color=color, size="small", horizontalalignment="center", verticalalignment="bottom")
+    ax.text(-loc + 0.5 + 0.3, -loc, "+V2 on sky", color=color, size="small", horizontalalignment="left", verticalalignment="center")
 
     if show_NE:
-        color2 = 'cyan'
+        color2 = "cyan"
         angle = np.deg2rad(north_angle)  # arbitrary
         dl = 0.3
         dx = np.sin(angle) * dl
         dy = np.cos(angle) * dl
         ax.arrow(-loc + 0.5, -loc, -dx, dy, color=color2, width=0.005)
         ax.arrow(-loc + 0.5, -loc, -dy, -dx, color=color2, width=0.005)
-        ax.text(-loc + 0.5 - 2.3 * dx, -loc + 2.3 * dy, 'N', color=color2, size='small',
-                horizontalalignment='center', verticalalignment='center')
-        ax.text(-loc + 0.5 - 1.3 * dy, -loc - 1.3 * dx, 'E', color=color2, size='small',
-                horizontalalignment='center', verticalalignment='center')
-
+        ax.text(-loc + 0.5 - 2.3 * dx, -loc + 2.3 * dy, "N", color=color2, size="small", horizontalalignment="center", verticalalignment="center")
+        ax.text(-loc + 0.5 - 1.3 * dy, -loc - 1.3 * dx, "E", color=color2, size="small", horizontalalignment="center", verticalalignment="center")
 
 
 def _run_benchmark(timer, iterations=1):
-    """ Common benchmarking core. Called from benchmark_imaging and benchmark_coronagraphy
-    """
+    """Common benchmarking core. Called from benchmark_imaging and benchmark_coronagraphy"""
     import poppy
+
     defaults = (poppy.conf.use_fftw, poppy.conf.use_numexpr, poppy.conf.use_cuda, poppy.conf.use_opencl)
 
     # Time baseline performance in numpy
@@ -730,83 +733,76 @@ def _run_benchmark(timer, iterations=1):
 
     poppy.conf.use_fftw, poppy.conf.use_numexpr, poppy.conf.use_cuda, poppy.conf.use_opencl = defaults
 
-    return {'numpy': time_numpy,
-            'fftw': time_fftw,
-            'numexpr': time_numexpr,
-            'cuda': time_cuda,
-            'opencl': time_opencl}
+    return {"numpy": time_numpy, "fftw": time_fftw, "numexpr": time_numexpr, "cuda": time_cuda, "opencl": time_opencl}
 
 
 def benchmark_imaging(iterations=1, nlambda=1, add_distortion=True):
-    """ Performance benchmark function for standard imaging """
-    import poppy
+    """Performance benchmark function for standard imaging"""
     import timeit
 
-    timer = timeit.Timer("psf = nc.calc_psf(nlambda=nlambda, add_distortion={})".format(add_distortion),
-                         setup="""
+    timer = timeit.Timer(
+        "psf = nc.calc_psf(nlambda=nlambda, add_distortion={})".format(add_distortion),
+        setup="""
 import webbpsf
 nc = webbpsf.NIRCam()
 nc.filter='F360M'
-nlambda={nlambda:d}""".format(nlambda=nlambda))
+nlambda={nlambda:d}""".format(nlambda=nlambda),
+    )
     print("Timing performance of NIRCam F360M with {} wavelengths, {} iterations".format(nlambda, iterations))
-
 
     return _run_benchmark(timer, iterations=iterations)
 
 
 def benchmark_nircam_coronagraphy(iterations=1, nlambda=1, add_distortion=True):
-    """ Performance benchmark function for standard imaging """
-    import poppy
+    """Performance benchmark function for standard imaging"""
     import timeit
 
-    timer = timeit.Timer("psf = nc.calc_psf(nlambda=nlambda, add_distortion={})".format(add_distortion),
-                         setup="""
+    timer = timeit.Timer(
+        "psf = nc.calc_psf(nlambda=nlambda, add_distortion={})".format(add_distortion),
+        setup="""
 import webbpsf
 nc = webbpsf.NIRCam()
 nc.filter='F335M'
 nc.image_mask='MASK335R'
 nc.pupil_mask='MASKRND'
-nlambda={nlambda:d}""".format(nlambda=nlambda))
+nlambda={nlambda:d}""".format(nlambda=nlambda),
+    )
     print("Timing performance of NIRCam MASK335R with {} wavelengths, {} iterations".format(nlambda, iterations))
-
 
     return _run_benchmark(timer, iterations=iterations)
 
 
 def benchmark_miri_coronagraphy(iterations=1, nlambda=1):
-    """ Performance benchmark function for standard imaging """
-    import poppy
+    """Performance benchmark function for standard imaging"""
     import timeit
 
-    timer = timeit.Timer("psf = miri.calc_psf(nlambda=nlambda)",
-                         setup="""
+    timer = timeit.Timer(
+        "psf = miri.calc_psf(nlambda=nlambda)",
+        setup="""
 import webbpsf
 miri = webbpsf.MIRI()
 miri.filter='F1065C'
 miri.image_mask='FQPM1065'
 miri.pupil_mask='MASKFQPM'
-nlambda={nlambda:d}""".format(nlambda=nlambda))
+nlambda={nlambda:d}""".format(nlambda=nlambda),
+    )
     print("Timing performance of MIRI F1065C with {} wavelengths, {} iterations".format(nlambda, iterations))
-
 
     return _run_benchmark(timer, iterations=iterations)
 
 
 def combine_docstrings(cls):
-    """ Combine the docstrings of a method and earlier implementations of the same method in parent classes """
+    """Combine the docstrings of a method and earlier implementations of the same method in parent classes"""
     for name, func in cls.__dict__.items():
-
         # Allow users to see the Poppy calc_psf docstring along with the JWInstrument version
-        if name == 'calc_psf':
+        if name == "calc_psf":
             jwinstrument_class = cls
             spacetelescope_class = cls.__base__
 
-            ind0 = getattr(jwinstrument_class, 'calc_psf').__doc__.index("add_distortion")  # pull the new parameters
-            ind1 = getattr(spacetelescope_class, 'calc_psf').__doc__.index("Returns")  # end of parameters
+            ind0 = getattr(jwinstrument_class, "calc_psf").__doc__.index("add_distortion")  # pull the new parameters
+            ind1 = getattr(spacetelescope_class, "calc_psf").__doc__.index("Returns")  # end of parameters
 
-            func.__doc__ = getattr(spacetelescope_class, 'calc_psf').__doc__[0:ind1] + \
-                           getattr(jwinstrument_class, 'calc_psf').__doc__[ind0:] + \
-                           getattr(spacetelescope_class, 'calc_psf').__doc__[ind1:]
+            func.__doc__ = getattr(spacetelescope_class, "calc_psf").__doc__[0:ind1] + getattr(jwinstrument_class, "calc_psf").__doc__[ind0:] + getattr(spacetelescope_class, "calc_psf").__doc__[ind1:]
 
     return cls
 
@@ -846,37 +842,37 @@ def to_griddedpsfmodel(HDUlist_or_filename=None, ext_data=0, ext_header=0):
     elif isinstance(HDUlist_or_filename, fits.HDUList):
         HDUlist = HDUlist_or_filename
     else:
-        raise ValueError('Input must be a filename or HDUlist')
+        raise ValueError("Input must be a filename or HDUlist")
 
     data = HDUlist[ext_data].data
     header = HDUlist[ext_header].header
 
     # If there's only 1 PSF and the data is 2D, make the data 3D for photutils can use it
-    if len(data.shape) == 2 and len(header['DET_YX*']) == 1:
+    if len(data.shape) == 2 and len(header["DET_YX*"]) == 1:
         data = np.array([data])
 
     # Check necessary keys are there
     if not any("DET_YX" in key for key in header.keys()):
         raise KeyError("You are missing 'DET_YX{}' keys: which are the detector locations of the PSFs")
-    if 'OVERSAMP' not in header.keys():
+    if "OVERSAMP" not in header.keys():
         raise KeyError("You are missing 'OVERSAMP' key: which is the oversampling factor of the PSFs")
 
     # Convert header to meta dict
     header = header.copy(strip=True)
-    header.pop('COMMENT', None)
-    header.pop('', None)
-    header.pop('HISTORY', None)
+    header.pop("COMMENT", None)
+    header.pop("", None)
+    header.pop("HISTORY", None)
     meta = OrderedDict((a, (b, c)) for (a, b, c) in header.cards)
 
     ndd = NDData(data, meta=meta, copy=True)
 
     # Edit meta dictionary for GriddedPSFLibrary specifics
-    ndd.meta['grid_xypos'] = [((float(ndd.meta[key][0].split(',')[1].split(')')[0])),
-                              (float(ndd.meta[key][0].split(',')[0].split('(')[1])))
-                              for key in ndd.meta.keys() if "DET_YX" in key]  # from (y,x) to (x,y)
+    ndd.meta["grid_xypos"] = [
+        ((float(ndd.meta[key][0].split(",")[1].split(")")[0])), (float(ndd.meta[key][0].split(",")[0].split("(")[1]))) for key in ndd.meta.keys() if "DET_YX" in key
+    ]  # from (y,x) to (x,y)
 
-    if 'oversampling' not in ndd.meta:
-        ndd.meta['oversampling'] = ndd.meta['OVERSAMP'][0]  # pull the value
+    if "oversampling" not in ndd.meta:
+        ndd.meta["oversampling"] = ndd.meta["OVERSAMP"][0]  # pull the value
 
     # Turn all metadata keys into lowercase
     ndd.meta = {key.lower(): ndd.meta[key] for key in ndd.meta}
@@ -892,28 +888,23 @@ def determine_inst_name_from_v2v3(v2v3):
 
     In particular this is used as part of lookup for the OTE field dependence model.
     """
-	# Figure out what instrument the field coordinate correspond to
-    if (v2v3[0] <= 4.7 * u.arcmin) and (v2v3[0] >= -0.9 * u.arcmin) and \
-        (v2v3[1] <= -10.4 * u.arcmin) and (v2v3[1] >= -12.9 * u.arcmin):
-        instrument = 'FGS'
-        _log.debug('Field coordinates determined to be in FGS field')
-    elif (v2v3[0] <= 2.6 * u.arcmin) and (v2v3[0] >= -2.6 * u.arcmin) and \
-        (v2v3[1] <= -6.2 * u.arcmin) and (v2v3[1] >= -9.4 * u.arcmin):
-        instrument = 'NIRCam'
-        _log.debug('Field coordinates determined to be in NIRCam field')
-    elif (v2v3[0] <= 8.95 * u.arcmin) and (v2v3[0] >= 3.7 * u.arcmin) and \
-        (v2v3[1] <= -4.55 * u.arcmin) and (v2v3[1] >= -9.75 * u.arcmin):
-        instrument = 'NIRSpec'
-        _log.debug('Field coordinates determined to be in NIRSpec field')
-    elif (v2v3[0] <= -6.2 * u.arcmin) and (v2v3[0] >= -8.3 * u.arcmin) and \
-        (v2v3[1] <= -5.2 * u.arcmin) and (v2v3[1] >= -7.3 * u.arcmin):
-        instrument = 'MIRI'
-        _log.debug('Field coordinates determined to be in MIRI field')
-    elif (v2v3[0] <= -3.70 * u.arcmin) and (v2v3[0] >= -6.0 * u.arcmin) and \
-        (v2v3[1] <= -10.5 * u.arcmin) and (v2v3[1] >= -12.8 * u.arcmin):
-        instrument = 'NIRISS'
-        _log.debug('Field coordinates determined to be in NIRISS field')
+    # Figure out what instrument the field coordinate correspond to
+    if (v2v3[0] <= 4.7 * u.arcmin) and (v2v3[0] >= -0.9 * u.arcmin) and (v2v3[1] <= -10.4 * u.arcmin) and (v2v3[1] >= -12.9 * u.arcmin):
+        instrument = "FGS"
+        _log.debug("Field coordinates determined to be in FGS field")
+    elif (v2v3[0] <= 2.6 * u.arcmin) and (v2v3[0] >= -2.6 * u.arcmin) and (v2v3[1] <= -6.2 * u.arcmin) and (v2v3[1] >= -9.4 * u.arcmin):
+        instrument = "NIRCam"
+        _log.debug("Field coordinates determined to be in NIRCam field")
+    elif (v2v3[0] <= 8.95 * u.arcmin) and (v2v3[0] >= 3.7 * u.arcmin) and (v2v3[1] <= -4.55 * u.arcmin) and (v2v3[1] >= -9.75 * u.arcmin):
+        instrument = "NIRSpec"
+        _log.debug("Field coordinates determined to be in NIRSpec field")
+    elif (v2v3[0] <= -6.2 * u.arcmin) and (v2v3[0] >= -8.3 * u.arcmin) and (v2v3[1] <= -5.2 * u.arcmin) and (v2v3[1] >= -7.3 * u.arcmin):
+        instrument = "MIRI"
+        _log.debug("Field coordinates determined to be in MIRI field")
+    elif (v2v3[0] <= -3.70 * u.arcmin) and (v2v3[0] >= -6.0 * u.arcmin) and (v2v3[1] <= -10.5 * u.arcmin) and (v2v3[1] >= -12.8 * u.arcmin):
+        instrument = "NIRISS"
+        _log.debug("Field coordinates determined to be in NIRISS field")
     else:
-        raise ValueError(f'Given V2V3 coordinates {v2v3} do not fall within an instrument FOV region')
+        raise ValueError(f"Given V2V3 coordinates {v2v3} do not fall within an instrument FOV region")
 
     return instrument
