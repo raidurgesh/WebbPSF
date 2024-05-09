@@ -1,15 +1,11 @@
 import os
 
 import astropy.convolution
-from astropy.io import fits
 import numpy as np
 import pytest
+from astropy.io import fits
 
-from .. import gridded_library
-from .. import webbpsf_core
-from .. import roman
-from .. import utils
-from .. import detectors
+from .. import detectors, gridded_library, roman, utils, webbpsf_core
 
 
 def test_compare_to_calc_psf_oversampled():
@@ -24,7 +20,7 @@ def test_compare_to_calc_psf_oversampled():
     """
     oversample = 2
     fov_pixels = 10
-    nlambda= 1
+    nlambda = 1
 
     # Create PSF grid
     fgs = webbpsf_core.FGS()
@@ -43,11 +39,11 @@ def test_compare_to_calc_psf_oversampled():
     calcpsf = fgs.calc_psf(oversample=oversample, fov_pixels=fov_pixels, nlambda=nlambda)["OVERDIST"].data
     kernel = astropy.convolution.Box2DKernel(width=oversample)
     convpsf = astropy.convolution.convolve(calcpsf, kernel)
-    scalefactor = oversample**2 # normalization as used internally in GriddedPSFModel; see #302
+    scalefactor = oversample**2  # normalization as used internally in GriddedPSFModel; see #302
 
     # Compare to make sure they are in fact the same PSF
     assert gridpsf.shape == calcpsf.shape, "Shape mismatch"
-    assert np.allclose(gridpsf, convpsf*scalefactor), "Data values not as expected"
+    assert np.allclose(gridpsf, convpsf * scalefactor), "Data values not as expected"
 
 
 def test_compare_to_calc_psf_detsampled():
@@ -63,8 +59,7 @@ def test_compare_to_calc_psf_detsampled():
     mir = webbpsf_core.MIRI()
     mir.filter = "F560W"
     mir.detector = "MIRIM"
-    grid = mir.psf_grid(all_detectors=False, num_psfs=4, use_detsampled_psf=True, add_distortion=False,
-                        oversample=oversample, fov_arcsec=fov_arcsec, nlambda=nlambda, verbose=False)
+    grid = mir.psf_grid(all_detectors=False, num_psfs=4, use_detsampled_psf=True, add_distortion=False, oversample=oversample, fov_arcsec=fov_arcsec, nlambda=nlambda, verbose=False)
 
     # Pull one of the PSFs out of the grid
     psfnum = 1
@@ -75,7 +70,7 @@ def test_compare_to_calc_psf_detsampled():
 
     # Using meta data, create the expected same PSF via calc_psf
     mir.detector_position = (locx, locy)
-    mir.options['output_mode'] = 'Detector Sampled Image'
+    mir.options["output_mode"] = "Detector Sampled Image"
     calcpsf = mir.calc_psf(oversample=oversample, fov_arcsec=fov_arcsec, nlambda=nlambda)["DET_SAMP"].data
     kernel = astropy.convolution.Box2DKernel(width=1)
     convpsf = astropy.convolution.convolve(calcpsf, kernel)
@@ -125,29 +120,26 @@ def test_one_psf():
     nis.filter = "F140M"
 
     # Case 1: The PSF is centered on the detector (with single_psf_centered=True)
-    grid1 = nis.psf_grid(all_detectors=False, num_psfs=1, add_distortion=True, oversample=oversample,
-                         fov_pixels=fov_pixels, single_psf_centered=True, use_detsampled_psf=False, verbose=False)
+    grid1 = nis.psf_grid(all_detectors=False, num_psfs=1, add_distortion=True, oversample=oversample, fov_pixels=fov_pixels, single_psf_centered=True, use_detsampled_psf=False, verbose=False)
 
     # Case 2: The PSF is set to a specific position (with nis.detector_position = (10, 0))
     nis.detector_position = (10, 0)  # it's set as (x,y)
-    grid2 = nis.psf_grid(all_detectors=False, num_psfs=1, add_distortion=True, oversample=oversample,
-                         fov_pixels=fov_pixels, single_psf_centered=False, use_detsampled_psf=False, verbose=False)
+    grid2 = nis.psf_grid(all_detectors=False, num_psfs=1, add_distortion=True, oversample=oversample, fov_pixels=fov_pixels, single_psf_centered=False, use_detsampled_psf=False, verbose=False)
 
     # Compare Case 2 to the calc_psf output to make sure it's placing the PSF in the right location
     calc = nis.calc_psf(add_distortion=True, oversample=2, fov_pixels=11)
     # first, add IPC to the oversampled data from case 2, then convolve with detector binning
-    detectors.apply_detector_ipc(calc, extname='OVERDIST')
+    detectors.apply_detector_ipc(calc, extname="OVERDIST")
     kernel = astropy.convolution.Box2DKernel(width=oversample)
     convpsf = astropy.convolution.convolve(calc["OVERDIST"].data, kernel)
-    scalefactor = oversample**2 # normalization as used internally in GriddedPSFModel; see #302
-
+    scalefactor = oversample**2  # normalization as used internally in GriddedPSFModel; see #302
 
     assert np.all(grid1.grid_xypos == [[1023, 1023]]), "Center position not as expected"  # the default is the center of the NIS aperture
-    assert np.all(grid2.grid_xypos == [(10, 0)]), "Corner position not as expected" # it's in (x,y)
+    assert np.all(grid2.grid_xypos == [(10, 0)]), "Corner position not as expected"  # it's in (x,y)
     # check for near-equality of the PSFs computed both ways,
     #  but ignore the outer few pixels rows and columns, for which boundary wrapping leads to imperfect equality
     #  depending on the order of the convolutions. Ignore 2 rows/cols on either side based on oversample value
-    assert np.allclose((convpsf*scalefactor)[2:-2, 2:-2], grid2.data[0, 2:-2, 2:-2]), "PSF data values not as expected"
+    assert np.allclose((convpsf * scalefactor)[2:-2, 2:-2], grid2.data[0, 2:-2, 2:-2]), "PSF data values not as expected"
 
 
 def test_nircam_errors():
@@ -202,7 +194,7 @@ def test_saving(tmpdir):
     grid = fgs.psf_grid(all_detectors=False, num_psfs=4, nlambda=1, save=True, outdir=directory, outfile=file, overwrite=True)
 
     # Check that the saved file matches the returned file (and thus that the save worked through properly)
-    with fits.open(os.path.join(directory, file[:-5]+"_fgs2.fits")) as infile:
+    with fits.open(os.path.join(directory, file[:-5] + "_fgs2.fits")) as infile:
         # Check data
         assert np.array_equal(infile[0].data, grid.data)
 
@@ -222,18 +214,18 @@ def test_2d_to_griddedpsfmodel():
     # Set up example 2D fits image
     data = np.ones((10, 10))
     primaryhdu = fits.PrimaryHDU(data)
-    primaryhdu.header["DET_YX0"] = ('(1024, 1024)', 'The #0 PSFs (y,x) detector pixel position')
-    primaryhdu.header["OVERSAMP"] = (5, 'oversampling value')
+    primaryhdu.header["DET_YX0"] = ("(1024, 1024)", "The #0 PSFs (y,x) detector pixel position")
+    primaryhdu.header["OVERSAMP"] = (5, "oversampling value")
     hdu = fits.HDUList(primaryhdu)
 
     # Test that nothing errors when writing a GriddedPSFModel object
     model = utils.to_griddedpsfmodel(hdu)
 
     # Check the basic keywords are there
-    assert 'det_yx0' in model.meta
-    assert 'grid_xypos' in model.meta
-    assert 'oversamp' in model.meta
-    assert 'oversampling' in model.meta
+    assert "det_yx0" in model.meta
+    assert "grid_xypos" in model.meta
+    assert "oversamp" in model.meta
+    assert "oversampling" in model.meta
 
 
 def test_wfi():
@@ -250,8 +242,8 @@ def test_wfi():
     # Pull one of the PSFs out of the grid
     psfnum = 1
     loc = grid.grid_xypos[psfnum]
-    locy = int(float(loc[1])-0.5)
-    locx = int(float(loc[0])-0.5)
+    locy = int(float(loc[1]) - 0.5)
+    locx = int(float(loc[0]) - 0.5)
     gridpsf = grid.data[psfnum, :, :]
 
     # Using meta data, create the expected same PSF via calc_psf
@@ -259,8 +251,8 @@ def test_wfi():
     calcpsf = wfi.calc_psf(oversample=oversample, fov_pixels=fov_pixels, nlambda=nlambda)["OVERSAMP"].data
     kernel = astropy.convolution.Box2DKernel(width=oversample)
     convpsf = astropy.convolution.convolve(calcpsf, kernel)
-    scalefactor = oversample ** 2  # normalization as used internally in GriddedPSFModel; see #302
+    scalefactor = oversample**2  # normalization as used internally in GriddedPSFModel; see #302
 
     # Compare to make sure they are in fact the same PSF
     assert gridpsf.shape == calcpsf.shape, "Shape mismatch"
-    assert np.allclose(gridpsf, convpsf*scalefactor), "Data values not as expected"
+    assert np.allclose(gridpsf, convpsf * scalefactor), "Data values not as expected"

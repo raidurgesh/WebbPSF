@@ -1,9 +1,8 @@
-import pytest
 import numpy as np
+import pytest
 from astropy.io import fits
 
-from .. import distortion
-from .. import webbpsf_core
+from .. import distortion, webbpsf_core
 
 
 # @pytest.mark.skip()
@@ -36,7 +35,7 @@ def test_apply_distortion_skew():
 
     # Rebin data to get 3rd extension
     fgs.options["output_mode"] = "Both extensions"
-    fgs.options["detector_oversample"] = psf[0].header['DET_SAMP']
+    fgs.options["detector_oversample"] = psf[0].header["DET_SAMP"]
     webbpsf_core.SpaceTelescopeInstrument._calc_psf_format_output(fgs, result=psf_siaf, options=fgs.options)
 
     # Test the slope of the rectangle
@@ -44,8 +43,8 @@ def test_apply_distortion_skew():
         left = psf_siaf[ext].data[:, 0]  # isolate the far left column
         right = psf_siaf[ext].data[:, -1]  # isolate the far right column
 
-        indexes_left = [i for i, x in enumerate(left) if x != 0.]  # find the indices of the rectangle in the left col
-        indexes_right = [i for i, x in enumerate(right) if x != 0.]  # find the indices of the rectangle in the right
+        indexes_left = [i for i, x in enumerate(left) if x != 0.0]  # find the indices of the rectangle in the left col
+        indexes_right = [i for i, x in enumerate(right) if x != 0.0]  # find the indices of the rectangle in the right
 
         top_of_left = np.min(indexes_left)  # find the index of the top left corner of the rectangle
         top_of_right = np.min(indexes_right)  # find the index of the top right corner of the rectangle
@@ -100,7 +99,7 @@ def test_apply_distortion_pixel_scale():
 
     # Rebin data to get 3rd extension (DET_DIST)
     fgs.options["output_mode"] = "Both extensions"
-    fgs.options["detector_oversample"] = psf[0].header['DET_SAMP']
+    fgs.options["detector_oversample"] = psf[0].header["DET_SAMP"]
     webbpsf_core.SpaceTelescopeInstrument._calc_psf_format_output(fgs, result=psf_siaf, options=fgs.options)
 
     # Test that the change caused by the pixel distortion is approximately constant along the row
@@ -122,17 +121,15 @@ def test_apply_distortion_pixel_scale():
 
     # Check the difference between adjacent values is the same to 1 decimal place
     diff = final[:-1] - final[1:]
-    assert pytest.approx(diff, abs=0.1) == 0, \
-        "FGS PSF does not have expected pixel scale distortion for adjacent pixels"
+    assert pytest.approx(diff, abs=0.1) == 0, "FGS PSF does not have expected pixel scale distortion for adjacent pixels"
 
     # Check that the difference between the first and last value is also the same to 1 decimal
-    assert pytest.approx(final[-1], abs=0.1) == final[0], "FGS PSF does not have expected pixel scale distortion in the " \
-                                                      "entire row"
+    assert pytest.approx(final[-1], abs=0.1) == final[0], "FGS PSF does not have expected pixel scale distortion in the " "entire row"
 
 
 # @pytest.mark.skip()
 def test_apply_rotation_error():
-    """ Test that the apply_rotation function raises an error for NIRSpec and MIRI PSFs """
+    """Test that the apply_rotation function raises an error for NIRSpec and MIRI PSFs"""
 
     # Create a PSF
     for inst in [webbpsf_core.NIRSpec(), webbpsf_core.MIRI()]:
@@ -145,7 +142,7 @@ def test_apply_rotation_error():
 
 
 def test_distortion_with_custom_pixscale():
-    """ Verifies the distortion model works properly even if the pixel scale is changed to
+    """Verifies the distortion model works properly even if the pixel scale is changed to
     a nonstandard value for the calculation. This tests/verifies the fix in PR 669:
         https://github.com/spacetelescope/webbpsf/pull/669
     """

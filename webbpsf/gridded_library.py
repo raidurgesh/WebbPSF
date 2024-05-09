@@ -4,28 +4,37 @@ from collections import OrderedDict
 
 import astropy.convolution
 import numpy as np
+import poppy
 from astropy.io import fits
 from astropy.nddata import NDData
 
-import poppy
 import webbpsf.detectors
 
 
 class CreatePSFLibrary:
-
     # Class variables for NIRCam short vs long wave information:
-    nrca_short_filters = ['F070W', 'F090W', 'F115W', 'F140M', 'F150W2', 'F150W', 'F162M', 'F164N', 'F182M', 'F187N',
-                          'F200W', 'F210M', 'F212N']
-    nrca_long_filters = ['F250M', 'F277W', 'F300M', 'F322W2', 'F323N', 'F335M', 'F356W', 'F360M', 'F405N', 'F410M',
-                         'F430M', 'F444W', 'F460M', 'F466N', 'F470N', 'F480M']
+    nrca_short_filters = ["F070W", "F090W", "F115W", "F140M", "F150W2", "F150W", "F162M", "F164N", "F182M", "F187N", "F200W", "F210M", "F212N"]
+    nrca_long_filters = ["F250M", "F277W", "F300M", "F322W2", "F323N", "F335M", "F356W", "F360M", "F405N", "F410M", "F430M", "F444W", "F460M", "F466N", "F470N", "F480M"]
 
-    nrca_short_detectors = ['NRCA1', 'NRCA2', 'NRCA3', 'NRCA4', 'NRCB1', 'NRCB2', 'NRCB3', 'NRCB4']
-    nrca_long_detectors = ['NRCA5', 'NRCB5']
+    nrca_short_detectors = ["NRCA1", "NRCA2", "NRCA3", "NRCA4", "NRCB1", "NRCB2", "NRCB3", "NRCB4"]
+    nrca_long_detectors = ["NRCA5", "NRCB5"]
 
-    def __init__(self, instrument, filter_name, detectors="all", num_psfs=16, psf_location=None,
-                 use_detsampled_psf=False, save=True, outdir=None, filename=None, overwrite=True, verbose=True,
-                 psf_location_list=None,
-                 **kwargs):
+    def __init__(
+        self,
+        instrument,
+        filter_name,
+        detectors="all",
+        num_psfs=16,
+        psf_location=None,
+        use_detsampled_psf=False,
+        save=True,
+        outdir=None,
+        filename=None,
+        overwrite=True,
+        verbose=True,
+        psf_location_list=None,
+        **kwargs,
+    ):
         """
         Description
         -----------
@@ -161,10 +170,10 @@ class CreatePSFLibrary:
         elif "fov_arcsec" in kwargs:
             # From poppy.instrument.get_optical_system() -> line 581
             self.fov_pixels = int(np.round(kwargs["fov_arcsec"] / self.webb.pixelscale))
-            if 'parity' in self.webb.options:
-                if self.webb.options['parity'].lower() == 'odd' and np.remainder(self.fov_pixels, 2) == 0:
+            if "parity" in self.webb.options:
+                if self.webb.options["parity"].lower() == "odd" and np.remainder(self.fov_pixels, 2) == 0:
                     self.fov_pixels += 1
-                if self.webb.options['parity'].lower() == 'even' and np.remainder(self.fov_pixels, 2) == 1:
+                if self.webb.options["parity"].lower() == "even" and np.remainder(self.fov_pixels, 2) == 1:
                     self.fov_pixels += 1
         else:
             self.fov_pixels = 101
@@ -214,19 +223,17 @@ class CreatePSFLibrary:
             # Want this case to be at the specified location
             location_list = [(psf_location[::-1])]  # tuple of (x,y)
         else:
-
             if psf_location_list is not None:
                 if len(psf_location_list) != num_psfs:
-                    raise ValueError(
-                        "Length of psf_location_list ({len(psf_location_list)})  must equal num_psfs ({num_psfs})")
+                    raise ValueError("Length of psf_location_list ({len(psf_location_list)})  must equal num_psfs ({num_psfs})")
                 location_list = psf_location_list
 
             else:
                 if isinstance(self.webb._detector_npixels, tuple):
-                    max_size = min(self.webb._detector_npixels) - 1   # a tuple has been provided for non-square detector.
-                                                                      # This is only true for MIRI (1024, 1032) and it's a
-                                                                      # small enough effect that it's reasonable to treat
-                                                                      # it as square when choosing locatins here.
+                    max_size = min(self.webb._detector_npixels) - 1  # a tuple has been provided for non-square detector.
+                # This is only true for MIRI (1024, 1032) and it's a
+                # small enough effect that it's reasonable to treat
+                # it as square when choosing locatins here.
                 else:
                     max_size = self.webb._detector_npixels - 1
                 loc_list = [int(round(num * max_size)) for num in np.linspace(0, 1, self.length, endpoint=True)]
@@ -249,14 +256,14 @@ class CreatePSFLibrary:
 
         # Set output mode and extension to use
         if self.use_detsampled_psf is True:
-            self.webb.options['output_mode'] = 'Detector sampled image'
+            self.webb.options["output_mode"] = "Detector sampled image"
             self.oversample = 1
             if self.add_distortion:
                 ext = "DET_DIST"
             else:
                 ext = "DET_SAMP"
         elif self.use_detsampled_psf is False:
-            self.webb.options['output_mode'] = 'Oversampled image'
+            self.webb.options["output_mode"] = "Oversampled image"
             if self.add_distortion:
                 ext = "OVERDIST"
             else:
@@ -289,20 +296,19 @@ class CreatePSFLibrary:
                 self.webb.detector_position = loc  # (X,Y) - line 286 in webbpsf_core.py
 
                 if self.verbose is True:
-                    print("    Position {}/{}: {} pixels".format(i+1, len(self.location_list), loc))
+                    print("    Position {}/{}: {} pixels".format(i + 1, len(self.location_list), loc))
 
-                add_ipc_gridded = False   # add variable to keep track of if this function locally changed the user's IPC input
+                add_ipc_gridded = False  # add variable to keep track of if this function locally changed the user's IPC input
                 # Deactivate IPC corrections, if any, before calc_psf as we are applying them later
-                if self.webb.options.get('add_ipc', True):
-                    self.webb.options['add_ipc'] = False
-                    add_ipc_gridded = True   # we should reset the IPC flag below, after computing the PSF
+                if self.webb.options.get("add_ipc", True):
+                    self.webb.options["add_ipc"] = False
+                    add_ipc_gridded = True  # we should reset the IPC flag below, after computing the PSF
 
                 # Create PSF
                 psf = self.webb.calc_psf(**self._kwargs)
                 if self.verbose is True:
                     cntrd = poppy.measure_centroid(psf)
-                    print("    Position {}/{} centroid: {}".format(i+1, len(self.location_list), cntrd))
-
+                    print("    Position {}/{} centroid: {}".format(i + 1, len(self.location_list), cntrd))
 
                 # Convolve PSF with a square kernel for the detector pixel response function
                 psf[ext].data = astropy.convolution.convolve(psf[ext].data, kernel)
@@ -310,7 +316,7 @@ class CreatePSFLibrary:
                 # Convolve PSF with a model for interpixel capacitance
                 if self.add_distortion and add_ipc_gridded:
                     webbpsf.detectors.apply_detector_ipc(psf, extname=ext)
-                    self.webb.options['add_ipc'] = True  # restore the user's value for the IPC option
+                    self.webb.options["add_ipc"] = True  # restore the user's value for the IPC option
 
                 # Add PSF to 5D array
                 psf_arr[i, :, :] = psf[ext].data
@@ -329,8 +335,8 @@ class CreatePSFLibrary:
             meta["DETECTOR"] = (det, "Detector name")
             meta["FILTER"] = (self.filter, "Filter name")
             meta["PUPILOPD"] = (psf[ext].header["PUPILOPD"], "Pupil OPD source name")
-            meta['OPD_FILE'] = (psf[ext].header["OPD_FILE"], 'Pupil OPD file name')
-            meta['OPDSLICE'] = (psf[ext].header["OPDSLICE"], 'Pupil OPD slice number')
+            meta["OPD_FILE"] = (psf[ext].header["OPD_FILE"], "Pupil OPD file name")
+            meta["OPDSLICE"] = (psf[ext].header["OPDSLICE"], "Pupil OPD slice number")
 
             meta["FOVPIXEL"] = (self.fov_pixels, "Field of view in pixels (full array)")
             meta["FOV"] = (psf[ext].header["FOV"], "Field of view in arcsec (full array)")
@@ -351,8 +357,7 @@ class CreatePSFLibrary:
                 if self.fov_pixels % 2 == 0:
                     loc += 0.5  # even arrays must be at a half pixel
 
-                meta["DET_YX{}".format(h)] = (str((float(loc[1]), float(loc[0]))),
-                                              "The #{} PSF's (y,x) detector pixel position".format(h))
+                meta["DET_YX{}".format(h)] = (str((float(loc[1]), float(loc[0]))), "The #{} PSF's (y,x) detector pixel position".format(h))
 
             meta["NUM_PSFS"] = (self.num_psfs, "The total number of fiducial PSFs")
 
@@ -368,12 +373,10 @@ class CreatePSFLibrary:
                 if self.instr in ["NIRCam", "NIRISS", "FGS"]:
                     meta["ROTATION"] = (psf[ext].header["ROTATION"], "PSF rotated to match detector rotation")
 
-                if self.instr=="MIRI":
+                if self.instr == "MIRI":
                     meta["MIR_DIST"] = (psf[ext].header["MIR_DIST"], "MIRI detector scattering applied")
-                    meta["KERN_AMP"] = (psf[ext].header["KERN_AMP"],
-                                        "Amplitude(A) in kernel function A * exp(-x / B)")
-                    meta["KERNFOLD"] = (psf[ext].header["KERNFOLD"],
-                                        "e - folding length(B) in kernel func A * exp(-x / B)")
+                    meta["KERN_AMP"] = (psf[ext].header["KERN_AMP"], "Amplitude(A) in kernel function A * exp(-x / B)")
+                    meta["KERNFOLD"] = (psf[ext].header["KERNFOLD"], "e - folding length(B) in kernel func A * exp(-x / B)")
 
             # Pull values from the last made psf
             meta["WAVELEN"] = (psf[ext].header["WAVELEN"], "Weighted mean wavelength in meters")
@@ -385,17 +388,17 @@ class CreatePSFLibrary:
             # Copy values for per-segment Zernike {piston, tip, tilt}, if present
             # (these are only present or used in incoherent segment PSF generation with the
             # remove_piston_tip_tilt value set to True):
-            if 'S01PISTN' in psf[ext].header:
+            if "S01PISTN" in psf[ext].header:
                 # if we have one such keyword, assume we have them for all segments and all types
-                for i in range(1,19):
-                    for ztype in ('PISTN', 'XTILT', 'YTILT'):
+                for i in range(1, 19):
+                    for ztype in ("PISTN", "XTILT", "YTILT"):
                         mykey = f"S{i:02d}{ztype}"
                         meta[mykey] = (psf[ext].header[mykey], psf[ext].header.comments[mykey])
 
             # copy all the jitter-related keys (the exact set of keywords varies based on jitter type)
             # Also copy charge diffusion and IPC
-            for k in psf[ext].header.keys():   # do the rest
-                if k.startswith('JITR') or k.startswith('IPC') or k.startswith('PPC') or k.startswith('CHDF'):
+            for k in psf[ext].header.keys():  # do the rest
+                if k.startswith("JITR") or k.startswith("IPC") or k.startswith("PPC") or k.startswith("CHDF"):
                     meta[k] = (psf[ext].header[k], psf[ext].header.comments[k])
 
             meta["DATE"] = (psf[ext].header["DATE"], "Date of calculation")
@@ -448,11 +451,9 @@ class CreatePSFLibrary:
 
         ndd = NDData(data, meta=meta, copy=True)
 
-        ndd.meta['grid_xypos'] = [((float(ndd.meta[key][0].split(',')[1].split(')')[0])),
-                                  (float(ndd.meta[key][0].split(',')[0].split('(')[1])))
-                                  for key in ndd.meta.keys() if "DET_YX" in key]
+        ndd.meta["grid_xypos"] = [((float(ndd.meta[key][0].split(",")[1].split(")")[0])), (float(ndd.meta[key][0].split(",")[0].split("(")[1]))) for key in ndd.meta.keys() if "DET_YX" in key]
 
-        ndd.meta['oversampling'] = meta["OVERSAMP"][0]  # just pull the value
+        ndd.meta["oversampling"] = meta["OVERSAMP"][0]  # just pull the value
         ndd.meta = {key.lower(): ndd.meta[key] for key in ndd.meta}
 
         model = GriddedPSFModel(ndd)
@@ -486,14 +487,14 @@ class CreatePSFLibrary:
         primaryhdu.header["COMMENT"] = "header DET_YX* keywords"
 
         # Add extra header labels
-        primaryhdu.header.insert("INSTRUME", ('', ''))
-        primaryhdu.header.insert("INSTRUME", ('COMMENT', '/ PSF Library Information'))
+        primaryhdu.header.insert("INSTRUME", ("", ""))
+        primaryhdu.header.insert("INSTRUME", ("COMMENT", "/ PSF Library Information"))
 
-        primaryhdu.header.insert("NORMALIZ", ('', ''))
-        primaryhdu.header.insert("NORMALIZ", ('COMMENT', '/ WebbPSF Creation Information'))
+        primaryhdu.header.insert("NORMALIZ", ("", ""))
+        primaryhdu.header.insert("NORMALIZ", ("COMMENT", "/ WebbPSF Creation Information"))
 
-        primaryhdu.header.insert("DATAVERS", ('COMMENT', '/ File Description'), after=True)
-        primaryhdu.header.insert("DATAVERS", ('', ''), after=True)
+        primaryhdu.header.insert("DATAVERS", ("COMMENT", "/ File Description"), after=True)
+        primaryhdu.header.insert("DATAVERS", ("", ""), after=True)
 
         # Combine the header and data
         hdu = fits.HDUList(primaryhdu)
@@ -501,9 +502,7 @@ class CreatePSFLibrary:
         # Set file information
         if self.filename is None:
             # E.g. filename: nircam_nrca1_f090w_fovp1000_samp4_npsf16.fits
-            file = "{}_{}_{}_fovp{}_samp{}_npsf{}.fits".format(self.instr.lower(), detector.lower(),
-                                                               self.filter.lower(), self.fov_pixels,
-                                                               self.oversample, self.num_psfs)
+            file = "{}_{}_{}_fovp{}_samp{}_npsf{}.fits".format(self.instr.lower(), detector.lower(), self.filter.lower(), self.fov_pixels, self.oversample, self.num_psfs)
         else:
             file = self.filename.split(".fits")[0] + "_{}.fits".format(detector.lower())
 
@@ -517,7 +516,7 @@ class CreatePSFLibrary:
 
 
 def display_psf_grid(grid, zoom_in=True, figsize=(14, 12), scale_range=1e-4, diff_scale_range=1, cmap=None):
-    """ Display a PSF grid in a pair of plots
+    """Display a PSF grid in a pair of plots
 
     Shows the NxN grid in NxN subplots, repeated to show
     first the individual PSFs, and then their differences
@@ -542,7 +541,7 @@ def display_psf_grid(grid, zoom_in=True, figsize=(14, 12), scale_range=1e-4, dif
 
     tuple_to_int = lambda t: (int(t[0]), int(t[1]))
 
-    def show_grid_helper(grid, data, title="Grid of PSFs", vmax=0, vmin=0, scale='log'):
+    def show_grid_helper(grid, data, title="Grid of PSFs", vmax=0, vmin=0, scale="log"):
         npsfs = grid.data.shape[0]
         n = int(np.sqrt(npsfs))
 
@@ -552,40 +551,36 @@ def display_psf_grid(grid, zoom_in=True, figsize=(14, 12), scale_range=1e-4, dif
         # for degenerate 1-PSF grids
         if n == 1:
             import warnings
+
             warnings.warn("Displaying a 1-element 'grid'; this will not be very interesting.")
             axes = np.asarray(axes)
             axes.shape = (1, 1)
 
-        if scale == 'log':
+        if scale == "log":
             norm = matplotlib.colors.LogNorm(vmax=vmax, vmin=vmin)
         else:
             norm = matplotlib.colors.Normalize(vmax=vmax, vmin=vmin)
 
         for ix in range(n):
             for iy in range(n):
-                i = ix*n+iy
-                im = axes[n-1-iy, ix].imshow(data[i], norm=norm, cmap=cmap, origin='lower')
-                axes[n-1-iy, ix].xaxis.set_visible(False)
-                axes[n-1-iy, ix].yaxis.set_visible(False)
-                axes[n-1-iy, ix].set_title("{}".format(tuple_to_int(grid.grid_xypos[i])))
+                i = ix * n + iy
+                im = axes[n - 1 - iy, ix].imshow(data[i], norm=norm, cmap=cmap, origin="lower")
+                axes[n - 1 - iy, ix].xaxis.set_visible(False)
+                axes[n - 1 - iy, ix].yaxis.set_visible(False)
+                axes[n - 1 - iy, ix].set_title("{}".format(tuple_to_int(grid.grid_xypos[i])))
                 if zoom_in:
-                    axes[n-1-iy,ix].use_sticky_edges = False
-                    axes[n-1-iy,ix].margins(x=-0.25, y=-0.25)
-        plt.suptitle("{} for {} in {} \noversampling: {}x".format(title,
-                                               grid.meta['detector'][0],
-                                               grid.meta['filter'][0], grid.oversampling), fontsize=16)
-
+                    axes[n - 1 - iy, ix].use_sticky_edges = False
+                    axes[n - 1 - iy, ix].margins(x=-0.25, y=-0.25)
+        plt.suptitle("{} for {} in {} \noversampling: {}x".format(title, grid.meta["detector"][0], grid.meta["filter"][0], grid.oversampling), fontsize=16)
 
         cbar = fig.colorbar(im, ax=axes.ravel().tolist(), shrink=0.95)
         cbar.set_label("Intensity, relative to PSF sum = 1.0")
 
-
     vmax = grid.data.max()
-    vmin = vmax*scale_range
+    vmin = vmax * scale_range
     show_grid_helper(grid, grid.data, vmax=vmax, vmin=vmin)
 
     meanpsf = np.mean(grid.data, axis=0)
     diffs = grid.data - meanpsf
-    vmax = np.abs(diffs).max()*diff_scale_range
-    show_grid_helper(grid, -diffs, vmax=vmax, vmin=-vmax, scale='linear', title='PSF differences from mean')
-
+    vmax = np.abs(diffs).max() * diff_scale_range
+    show_grid_helper(grid, -diffs, vmax=vmax, vmin=-vmax, scale="linear", title="PSF differences from mean")

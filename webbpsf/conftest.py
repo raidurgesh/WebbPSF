@@ -13,12 +13,13 @@ except ImportError:  # In case this plugin is not installed
 try:
     from webbpsf import __version__ as version
 except ImportError:
-    version = ''
+    version = ""
+
 
 def pytest_configure():
-    PYTEST_HEADER_MODULES.pop('Pandas', None)
-    PYTEST_HEADER_MODULES.pop('h5py', None)
-    PYTEST_HEADER_MODULES['Astropy'] = 'astropy'
-    PYTEST_HEADER_MODULES['Photutils'] = 'photutils'
-    PYTEST_HEADER_MODULES['Poppy'] = 'poppy'
-    TESTED_VERSIONS['Webbpsf'] = version
+    PYTEST_HEADER_MODULES.pop("Pandas", None)
+    PYTEST_HEADER_MODULES.pop("h5py", None)
+    PYTEST_HEADER_MODULES["Astropy"] = "astropy"
+    PYTEST_HEADER_MODULES["Photutils"] = "photutils"
+    PYTEST_HEADER_MODULES["Poppy"] = "poppy"
+    TESTED_VERSIONS["Webbpsf"] = version

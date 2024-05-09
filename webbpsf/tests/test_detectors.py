@@ -9,7 +9,7 @@ import webbpsf.webbpsf_core as webbpsf_core
 
 # @pytest.mark.skip()
 def test_apply_miri_scattering_error():
-    """ Test that the apply_miri_scattering function raises an error for non-MIRI PSFs """
+    """Test that the apply_miri_scattering function raises an error for non-MIRI PSFs"""
 
     # Create a PSF
     nir = webbpsf_core.NIRCam()
@@ -79,8 +79,7 @@ def test_apply_miri_scattering():
             value = 1.5e-6
 
         # Show that these corner squares contain very small values
-        assert_statement = "should have lower values because the scattering shouldn't be adding much to this region." \
-                           " It's too far away from where the cross is"
+        assert_statement = "should have lower values because the scattering shouldn't be adding much to this region." " It's too far away from where the cross is"
         assert np.all(square1 < value), "The LLCorner of the array {}".format(assert_statement)
         assert np.all(square2 < value), "The LRCorner of the array {}".format(assert_statement)
         assert np.all(square3 < value), "The ULCorner of the array {}".format(assert_statement)
@@ -103,8 +102,7 @@ def test_apply_miri_scattering():
 
         # Show that the average cross value is greater than the average square value by a factor of >100
         assert avg_cross > avg_edge, "The avg value of the cross should be larger than the avg value of the surrounding"
-        assert avg_cross / 100 > avg_edge, "The avg value of the cross should be larger than the avg value of the " \
-                                           "surrounding by a factor of 100"
+        assert avg_cross / 100 > avg_edge, "The avg value of the cross should be larger than the avg value of the " "surrounding by a factor of 100"
 
 
 # @pytest.mark.skip()
@@ -144,11 +142,10 @@ def test_miri_conservation_energy():
         psf_sum = np.sum(psf_cross[ext - 2].data.flatten())
         psf_cross_sum = np.sum(psf_cross[ext].data.flatten())
 
-        assert pytest.approx(psf_sum, 0.005) == psf_cross_sum, "The energy conversation of the PSF before/after the " \
-                                                               "scattering is added is greater than the tolerance of " \
-                                                               "0.005"
+        assert pytest.approx(psf_sum, 0.005) == psf_cross_sum, "The energy conversation of the PSF before/after the " "scattering is added is greater than the tolerance of " "0.005"
 
-def test_ipc_oversampling_equivalence(oversamp = 2):
+
+def test_ipc_oversampling_equivalence(oversamp=2):
     """Test that we can apply in either order the IPC model and binning to detector pixel scale,
     and get the same results independent of order of operations.
 
@@ -161,12 +158,12 @@ def test_ipc_oversampling_equivalence(oversamp = 2):
 
     # regular version, with IPC added after binning to detector sampling
     # this happens in normal calc_psf calls
-    psf_detdist = testpsf['DET_DIST'].data.copy()  # Binned then has IPC added
+    psf_detdist = testpsf["DET_DIST"].data.copy()  # Binned then has IPC added
 
     # apply IPC to oversampled extension, then bin
     # this happens in psf_grid calls
-    detectors.apply_detector_ipc(testpsf, extname='OVERDIST')
-    psf_detdist_v2 = poppy.utils.rebin_array(testpsf['OVERDIST'].data, (oversamp,oversamp))
+    detectors.apply_detector_ipc(testpsf, extname="OVERDIST")
+    psf_detdist_v2 = poppy.utils.rebin_array(testpsf["OVERDIST"].data, (oversamp, oversamp))
 
     assert np.allclose(psf_detdist, psf_detdist_v2), "PSFs calculated should be equivalent for IPC convolution and binning in either order"
 
@@ -179,17 +176,17 @@ def test_ipc_basic_effect_on_psf_fwhm():
     """
     nrc = webbpsf_core.NIRCam()
     psf_withipc = nrc.calc_psf(nlambda=1, fov_pixels=101)
-    nrc.options['add_ipc'] = False
+    nrc.options["add_ipc"] = False
     psf_noipc = nrc.calc_psf(nlambda=1, fov_pixels=101)
 
-    for extname in ['OVERSAMP', 'DET_SAMP']:
+    for extname in ["OVERSAMP", "DET_SAMP"]:
         fwhm_ipc = poppy.measure_fwhm(psf_withipc, ext=extname)
         fwhm_noipc = poppy.measure_fwhm(psf_noipc, ext=extname)
-        assert fwhm_ipc==fwhm_noipc, f'Adding IPC should not have any effect on the {extname} data.'
-        print(f'test ok for {extname}')
+        assert fwhm_ipc == fwhm_noipc, f"Adding IPC should not have any effect on the {extname} data."
+        print(f"test ok for {extname}")
 
-    for extname in ['OVERDIST', 'DET_DIST']:
+    for extname in ["OVERDIST", "DET_DIST"]:
         fwhm_ipc = poppy.measure_fwhm(psf_withipc, ext=extname)
         fwhm_noipc = poppy.measure_fwhm(psf_noipc, ext=extname)
-        assert fwhm_ipc>fwhm_noipc, f'Adding IPC should not blur and increase the FWHM in the {extname} data.'
-        print(f'test ok for {extname}')
+        assert fwhm_ipc > fwhm_noipc, f"Adding IPC should not blur and increase the FWHM in the {extname} data."
+        print(f"test ok for {extname}")
