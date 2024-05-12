@@ -375,7 +375,6 @@ JWST_INSCRIBED_DIAMETER = 5.47334  # meters. Middle corners of C segments
 
 JWST_TYPICAL_LOS_JITTER_PER_AXIS = 0.0008  # milliarcseconds jitter, 1 sigma per axis. = approx 1 mas rms radial, typically
 
-
 # ad hoc, highly simplified models for charge diffusion within detectors
 # These values are PLACEHOLDERS and should be updated based on comparisons with data and ePSFs (ongoing)
 # Note, these are parameterized as arcseconds for convenience (and consistency with the jitter paramater)
@@ -400,3 +399,21 @@ INSTRUMENT_IPC_DEFAULT_KERNEL_PARAMETERS = {
 # See Gaspar et al. 2021 for illustrative figures.
 # This is a rough approximation of a detector-position-dependent phenomenon
 MIRI_CRUCIFORM_INNER_RADIUS_PIX = 12
+
+# Alignment information about instrument internal pupil masks (
+INSTRUMENT_PUPIL_MASK_DEFAULT_POSITIONS = {
+    'NIRCam_SWA_MASKSWB': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_SWA_MASKLWB': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_SWA_MASK210R': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_SWA_MASK335R': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_SWA_MASK430R': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_LWA_MASKSWB': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_LWA_MASKLWB': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_LWA_MASK210R': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'NIRCam_LWA_MASK335R': {'pupil_shift_x': -0.012, 'pupil_shift_y': -0.023, 'pupil_rotation': -0.60},  # from K. Lawson, fits to ERS progid 1386 data
+    'NIRCam_LWA_MASK430R': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'MIRI_MASKFQPM_F1065C': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'MIRI_MASKFQPM_F11140': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'MIRI_MASKFQPM_F1550C': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+    'MIRI_MASKLYOT': {'pupil_shift_x': None, 'pupil_shift_y': None, 'pupil_rotation': None},
+}
