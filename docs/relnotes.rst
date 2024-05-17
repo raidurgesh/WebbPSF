@@ -37,7 +37,6 @@ X. Improved support for NIRSpec and MIRI IFU PSF calculations, including additio
 X. Improved PSF models for MIRI imager, in particular including an empirical model for the field-dependent shifts of the cruciform artifact seen at short wavelengths.
 
 
-
 Version 1.2.1
 =============
 Minor documentation updates
